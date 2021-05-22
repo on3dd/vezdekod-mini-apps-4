@@ -3,8 +3,6 @@ import styled from 'styled-components';
 import { Button, SizeType } from '@vkontakte/vkui';
 import { Icon16Minus, Icon16Add } from '@vkontakte/icons';
 
-import { COLORS } from '../../utils/constants';
-
 const Container = styled.div`
   display: flex;
   align-items: center;

@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { FixedLayout, Separator } from '@vkontakte/vkui';
+import { FixedLayout, Separator, HorizontalScroll } from '@vkontakte/vkui';
 import { FlashlightState } from '@limbus-mini-apps';
 
 import { FlashlightButton } from './FlashlightButton';
@@ -30,11 +30,13 @@ export const FlashLight: React.FC<FlashLightProps> = ({ currentIdx, buttonState,
     <FixedLayout filled vertical="bottom">
       <Separator wide />
       <Container>
-        <Row>
-          {buttonState.map((el, idx) => (
-            <FlashlightButton active={el} current={idx === currentIdx} onClick={() => onToggleButtonState(idx)} />
-          ))}
-        </Row>
+        <HorizontalScroll showArrows getScrollToLeft={(i) => i - 120} getScrollToRight={(i) => i + 120}>
+          <Row>
+            {buttonState.map((el, idx) => (
+              <FlashlightButton active={el} current={idx === currentIdx} onClick={() => onToggleButtonState(idx)} />
+            ))}
+          </Row>
+        </HorizontalScroll>
       </Container>
     </FixedLayout>
   );
