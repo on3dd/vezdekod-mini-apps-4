@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import '@vkontakte/vkui/dist/vkui.css';
-import bridge, { VKBridgeEvent, AnyReceiveMethodName, UpdateConfigData } from '@vkontakte/vk-bridge';
+import bridge, { VKBridgeEvent, AnyReceiveMethodName, ErrorData } from '@vkontakte/vk-bridge';
 import {
   ConfigProvider,
   AdaptivityProvider,
@@ -10,6 +10,7 @@ import {
   Panel,
   Group,
   Title,
+  Headline,
   PanelHeader,
   withAdaptivity,
 } from '@vkontakte/vkui';
@@ -25,14 +26,9 @@ const Container = styled.main`
 
 const INITIAL_FLASHLIGHT_STATE: FlashlightState = [false, false, false, false, false, false, false, false];
 
-type FlashlightError = {
-  error_type: string;
-  error_data: Record<string, unknown>;
-};
-
 const App: React.FC = () => {
   const [isAvailable, setIsAvailable] = useState<boolean>();
-  const [flashlightError, setFlashlightError] = useState<FlashlightError>();
+  const [flashlightError, setFlashlightError] = useState<ErrorData>();
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [buttonState, setButtonState] = useState<FlashlightState>(INITIAL_FLASHLIGHT_STATE);
@@ -48,37 +44,67 @@ const App: React.FC = () => {
     bridge.send('VKWebAppFlashGetInfo');
 
     bridge.subscribe(({ detail }: VKBridgeEvent<AnyReceiveMethodName>) => {
-      if (detail.type === 'VKWebAppUpdateConfig') {
-        console.log('VKWebAppUpdateConfig', detail.data);
+      switch (detail.type) {
+        case 'VKWebAppUpdateConfig': {
+          console.log('VKWebAppUpdateConfig', detail.data);
 
-        const schemeAttribute = document.createAttribute('scheme');
+          const schemeAttribute = document.createAttribute('scheme');
 
-        schemeAttribute.value = detail.data.scheme ? detail.data.scheme : 'client_light';
+          schemeAttribute.value = detail.data.scheme ? detail.data.scheme : 'client_light';
 
-        document.body.attributes.setNamedItem(schemeAttribute);
-      }
+          document.body.attributes.setNamedItem(schemeAttribute);
 
-      if (detail.type === 'VKWebAppFlashGetInfoResult') {
-        console.log('VKWebAppFlashGetInfoResult', detail.data.is_available);
-        setIsAvailable(() => detail.data.is_available);
-      }
+          break;
+        }
 
-      if (detail.type === 'VKWebAppFlashGetInfoFailed') {
-        console.log('VKWebAppFlashGetInfoFailed', detail.data);
-        setFlashlightError(() => detail.data);
+        case 'VKWebAppFlashGetInfoResult': {
+          console.log('VKWebAppFlashGetInfoResult', detail.data.is_available);
+          setIsAvailable(() => detail.data.is_available);
+          break;
+        }
+
+        case 'VKWebAppFlashGetInfoFailed': {
+          console.log('VKWebAppFlashGetInfoFailed', detail.data);
+          setFlashlightError(() => detail.data);
+          break;
+        }
+
+        case 'VKWebAppFlashSetLevelResult': {
+          console.log('VKWebAppFlashSetLevelResult', detail.data);
+          break;
+        }
+
+        case 'VKWebAppFlashSetLevelFailed': {
+          console.log('VKWebAppFlashSetLevelFailed', detail.data);
+          setFlashlightError(() => detail.data);
+          break;
+        }
       }
     });
   }, []);
 
+  const shineFlashlight = useCallback(
+    (idx: number) => {
+      const prevIdx = idx === 0 ? buttonState.length : idx - 1;
+
+      if (buttonState[idx] !== buttonState[prevIdx]) {
+        bridge.send('VKWebAppFlashSetLevel', { level: buttonState[idx] ? 1 : 0 });
+      }
+
+      setCurrentIdx(() => (idx + 1) % 8);
+    },
+    [buttonState, setCurrentIdx],
+  );
+
   useEffect(() => {
     const timer = setInterval(() => {
-      if (isAvailable) {
-        setCurrentIdx((prev) => (prev + 1) % 8);
+      if (isAvailable && flashlightError === undefined) {
+        shineFlashlight(currentIdx);
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isAvailable, setCurrentIdx]);
+  }, [isAvailable, flashlightError, currentIdx, shineFlashlight]);
 
   return (
     <ConfigProvider>
@@ -92,11 +118,30 @@ const App: React.FC = () => {
                 <Panel id="home">
                   <PanelHeader>Flashlight app</PanelHeader>
 
-                  <Group style={{ padding: '0.5rem 1rem' }}>
-                    <Title level="2" weight="regular">
-                      Is flashlight available: {`${isAvailable}`}
-                    </Title>
+                  <Group
+                    header={
+                      <Title level="2" weight="regular">
+                        Is flashlight available
+                      </Title>
+                    }
+                    style={{ padding: '0.5rem 1rem' }}
+                  >
+                    <Headline weight="regular">: {`${isAvailable}`}</Headline>
                   </Group>
+
+                  {flashlightError && (
+                    <Group
+                      header={
+                        <Title level="2" weight="regular">
+                          Flashlight error
+                        </Title>
+                      }
+                      style={{ padding: '0.5rem 1rem' }}
+                    >
+                      <Headline weight="regular">{`${flashlightError.error_type}`}</Headline>
+                      <Headline weight="regular">Error data: {JSON.stringify(flashlightError.error_data)}</Headline>
+                    </Group>
+                  )}
 
                   <FlashLight
                     currentIdx={currentIdx}
