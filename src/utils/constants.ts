@@ -1,4 +1,6 @@
 export const COLORS = {
+  red: '#e74c3c',
+  blue: '#3498db',
   black: 'rgba(0, 0, 0, 0.9)',
   cloud: 'rgba(235, 235, 235, 1)',
   white: 'rgba(255, 255, 255, 1)',
