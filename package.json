@@ -1,6 +1,7 @@
 {
   "name": "vezdekod-mini-apps-3",
   "version": "1.0.0",
+  "homepage":"./",
   "description": "",
   "main": "index.tsx",
   "scripts": {
@@ -8,7 +9,7 @@
     "build": "react-scripts build ",
     "predeploy": "npm run build",
     "deploy": "vk-miniapps-deploy",
-    "tunnel": "vk-tunnel --insecure=1 --http-protocol=http --ws-protocol=wss --host=localhost --port=3000"
+    "tunnel": "vk-tunnel --insecure=1 --http-protocol=http --host=localhost --port=3000"
   },
   "keywords": [],
   "author": "",
